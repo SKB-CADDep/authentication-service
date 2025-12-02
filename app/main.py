@@ -7,7 +7,8 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.routers import auth, frontend
-from app.database.session import engine
+from app.database.session import engine, Base
+from app.models.user import User
 
 # Настройка логирования
 logging.basicConfig(
@@ -49,6 +50,13 @@ async def startup_event():
     """
     logger = logging.getLogger(__name__)
     try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("✅ Database tables created successfully")
+    except Exception as e:
+        logger.error(f"❌ Error creating database tables: {e}")
+
+    try:
         # Пытаемся подключиться к БД
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
@@ -80,4 +88,3 @@ async def health_check():
             "database": "disconnected",
             "error": str(e)
         }
-
