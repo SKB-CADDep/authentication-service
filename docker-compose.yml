@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL для Auth Service
   auth_db:
-    image: postgres:17-alpine
+    image: postgres:15-alpine-alpine
     container_name: utz_auth_db
     environment:
       POSTGRES_USER: ${AUTH_DB_USER:-postgres}
@@ -81,15 +81,7 @@ services:
       - utz_network
     volumes:
       - .:/app
-    command: >
-      sh -c "
-        echo 'Waiting for database...' &&
-        sleep 5 &&
-        echo 'Running migrations...' &&
-        alembic upgrade head &&
-        echo 'Starting server...' &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-      "
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
 networks:
