@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL для Auth Service
   auth_db:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: utz_auth_db
     environment:
       POSTGRES_USER: ${AUTH_DB_USER:-postgres}
@@ -13,11 +13,11 @@ services:
     volumes:
       - auth_db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - utz_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-postgres}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-postgres}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +35,7 @@ services:
     networks:
       - utz_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
