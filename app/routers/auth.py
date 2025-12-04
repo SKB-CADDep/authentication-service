@@ -125,21 +125,10 @@ async def login(
     Аутентификация пользователя через LDAP и выдача JWT токенов.
     """
     # 1. Аутентификация в LDAP
-    if form_data.password == "123":
-        # Эмуляция успешного ответа от LDAP
-        ldap_data = {
-            "username": form_data.username,
-            "email": f"{form_data.username}@mock.local",
-            "full_name": f"Test User {form_data.username}",
-            "groups": ["Domain Users"],
-            "cn": f"CN={form_data.username},OU=Users,DC=utz,DC=local"
-        }
-    else:
-        # Пытаемся стучаться в реальный LDAP (упадет с ошибкой, если нет сети)
-        ldap_data = ldap_service.authenticate(
-            form_data.username,
-            form_data.password
-        )
+    ldap_data = ldap_service.authenticate(
+        form_data.username,
+        form_data.password
+    )
     
     if not ldap_data:
         raise HTTPException(
