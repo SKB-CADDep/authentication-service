@@ -1,34 +1,55 @@
-from fastapi import APIRouter, Request, HTTPException, status
+"""
+Модуль фронтенд-маршрутизации.
+
+Отвечает за отдачу статических HTML-страниц (входа и главной страницы) 
+и подключение шаблонизатора Jinja2. Служит точкой входа для UI-части микросервиса.
+"""
+
+import logging
+from pathlib import Path
+
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
-import logging
 
 logger = logging.getLogger(__name__)
 
-# Определяем базовую директорию проекта
-BASE_DIR = Path(__file__).parent.parent.parent
+# Определяем базовую директорию проекта для корректного поиска папки templates
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Инициализируем Jinja2Templates
+# Инициализируем шаблонизатор Jinja2
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-router = APIRouter(tags=["Frontend"])
+router = APIRouter(tags=["Frontend UI"])
 
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
+@router.get(
+    "/login", 
+    response_class=HTMLResponse,
+    summary="Страница авторизации",
+    include_in_schema=False  # Обычно UI-страницы скрывают из Swagger-документации API
+)
+async def login_page(request: Request) -> HTMLResponse:
     """
-    Страница входа в систему.
+    Отдает HTML-страницу входа в систему через шаблонизатор Jinja2.
     """
     return templates.TemplateResponse("login.html", {"request": request})
 
 
-@router.get("/", response_class=HTMLResponse)
-async def index_page(request: Request):
+@router.get(
+    "/", 
+    response_class=HTMLResponse,
+    summary="Главная страница (Дашборд)",
+    include_in_schema=False
+)
+async def index_page(request: Request) -> HTMLResponse:
     """
-    Главная страница (защищенная).
+    Отдает защищенную главную HTML-страницу.
+    
+    Примечание: HTML-код встроен напрямую (hardcoded) для упрощения поставки. 
+    В будущем рекомендуется вынести его в файл `templates/index.html` и 
+    возвращать через `templates.TemplateResponse`.
     """
-    # Простая HTML страница для главной
     html_content = """
     <!DOCTYPE html>
     <html lang="ru">
