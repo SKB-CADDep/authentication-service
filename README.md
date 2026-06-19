@@ -1,8 +1,8 @@
 # Authentication Service
 
-Сервис аутентификации с использованием LDAP (Active Directory) и JWT токенов. Включает веб-интерфейс для входа в систему и REST API для интеграции с другими сервисами.
+Сервис аутентификации с использованием LDAP (Active Directory) и JWT токенов. Включает веб-интерфейс для входа в систему и REST API для интеграции с другими сервисами платформы.
 
-## 🚀 Особенности
+## Особенности
 
 - **LDAP аутентификация** через Active Directory
 - **JWT токены** (access и refresh токены)
@@ -13,49 +13,58 @@
 - **REST API** для интеграции с другими сервисами
 - **Docker поддержка** для легкого развертывания
 
-## 📁 Структура проекта
+## Структура проекта
 
-```
+> Автоматически сгенерировано: `2026-06-17` | Директорий: **10** | Файлов: **29**
+
+```text
 authentication-service/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                    # Точка входа приложения
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py              # Конфигурация приложения
-│   │   └── security.py            # JWT токены и безопасность
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── user.py                # SQLAlchemy модель пользователя
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   ├── auth.py                # Pydantic схемы для аутентификации
-│   │   └── user.py                # Pydantic схемы для пользователя
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── ldap_service.py        # LDAP аутентификация
-│   │   └── token_service.py
-│   ├── routers/
-│   │   ├── __init__.py
-│   │   ├── auth.py                # API endpoints для аутентификации
-│   │   └── frontend.py            # Frontend роутеры (HTML страницы)
-│   └── database/
-│       ├── __init__.py
-│       └── session.py             # Настройка базы данных
-├── templates/
-│   └── login.html                 # Страница входа
-├── static/
-│   └── js/
-│       └── auth.js                # JavaScript для авторизации
-├── alembic/                       # Миграции базы данных
-├── docker-compose.yml              # Docker Compose конфигурация
-├── Dockerfile                      # Docker образ
-├── .env.example                    # Пример конфигурации
-├── pyproject.toml                  # Зависимости проекта
-└── README.md
+├── 📁 app/
+│   ├── 📁 core/
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 config.py              # Конфигурация приложения
+│   │   └── 🐍 security.py            # JWT токены и безопасность
+│   ├── 📁 database/
+│   │   ├── 🐍 __init__.py
+│   │   └── 🐍 session.py             # Настройка базы данных
+│   ├── 📁 models/
+│   │   ├── 🐍 __init__.py
+│   │   └── 🐍 user.py                # SQLAlchemy модель пользователя
+│   ├── 📁 routers/
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 auth.py                # API endpoints для аутентификации
+│   │   └── 🐍 frontend.py            # Frontend роутеры (HTML страницы)
+│   ├── 📁 schemas/
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 auth.py                # Pydantic схемы для аутентификации
+│   │   └── 🐍 user.py                # Pydantic схемы для пользователя
+│   ├── 📁 services/
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 ldap_service.py        # LDAP аутентификация
+│   │   └── 🐍 token_service.py       # Логика работы с токенами
+│   ├── 🐍 __init__.py
+│   └── 🐍 main.py                    # Точка входа приложения
+├── 📁 static/
+│   └── 📁 js/
+│       └── 📜 auth.js                # JavaScript для авторизации
+├── 📁 templates/
+│   └── 🌐 login.html                 # Страница входа
+├── 📄 .dockerignore
+├── 🙈 .gitignore
+├── ⚙️ docker-compose.yml             # Docker Compose конфигурация
+├── 🐳 Dockerfile                     # Docker образ
+├── 📄 env.example                    # Пример конфигурации
+├── 🐍 generate_tree.py               # Генератор дерева проекта
+├── 🔒 poetry.lock
+├── 📦 pyproject.toml                 # Зависимости проекта
+└── 📖 README.md
 ```
+<details>
+<summary>🚫 Игнорируемые директории</summary>
+<code>*.egg-info</code>, <code>.eggs</code>, <code>.env</code>, <code>.git</code>, <code>.idea</code>, <code>.mypy_cache</code>, <code>.pytest_cache</code>, <code>.ruff_cache</code>, <code>.tox</code>, <code>.venv</code>, <code>__pycache__</code>, <code>build</code>, <code>dist</code>, <code>env</code>, <code>migrations</code>, <code>node_modules</code>, <code>venv</code>
+</details>
 
-## 📋 Требования
+## Требования
 
 - Python 3.12+
 - PostgreSQL 15+
@@ -63,7 +72,7 @@ authentication-service/
 - Docker и Docker Compose (опционально, для контейнеризации)
 - Доступ к LDAP/Active Directory серверу
 
-## 🛠️ Установка
+## Установка
 
 ### 1. Клонирование репозитория
 
@@ -121,7 +130,7 @@ APP_NAME=UTZ Auth Service
 DEBUG=False
 ```
 
-**⚠️ Важно:** Измените `SECRET_KEY` на случайную строку для production!
+** Важно:** Измените `SECRET_KEY` на случайную строку для production!
 
 ## 🗄️ Настройка базы данных
 
@@ -175,7 +184,7 @@ poetry run alembic revision --autogenerate -m "Initial migration"
 poetry run alembic upgrade head
 ```
 
-## 🚀 Запуск приложения
+## Запуск приложения
 
 ### Локальный запуск
 
@@ -202,7 +211,7 @@ docker-compose logs -f auth_service
 docker-compose down
 ```
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Frontend (HTML страницы)
 
@@ -251,7 +260,7 @@ docker-compose down
 
 - `GET /health` - Проверка здоровья сервиса и подключения к БД
 
-## 🔐 Использование API
+## Использование API
 
 ### Пример авторизации (cURL)
 
@@ -293,7 +302,7 @@ const userResponse = await fetch('http://localhost:8000/auth/me', {
 });
 ```
 
-## 🐳 Docker
+## Docker
 
 ### Сборка образа
 
@@ -321,7 +330,7 @@ docker-compose down -v
 
 Все переменные окружения можно настроить в `.env` файле или передать через `docker-compose.yml`.
 
-## 🔧 Решение проблем
+## Решение проблем
 
 ### Ошибка: "Database connection failed"
 
@@ -376,7 +385,7 @@ poetry install
 poetry update
 ```
 
-## 📝 Логирование
+## Логирование
 
 Приложение логирует все важные события:
 - Успешная/неуспешная аутентификация
@@ -388,7 +397,7 @@ poetry update
 2025-11-06 10:42:38,099 - app.services.ldap_service - INFO - ✅ User lrshlyogin authenticated successfully
 ```
 
-## 🔒 Безопасность
+## Безопасность
 
 - **JWT токены** с настраиваемым временем жизни
 - **HTTPS** рекомендуется для production
@@ -396,7 +405,7 @@ poetry update
 - **Пароли** не хранятся в БД (проверка через LDAP)
 - **Secret Key** должен быть уникальным и секретным
 
-## 📚 Дополнительная информация
+## Дополнительная информация
 
 ### Структура JWT токена
 
@@ -419,7 +428,7 @@ Refresh токен содержит:
 
 Группы из LDAP (`memberOf`) сохраняются в БД и доступны через API для проверки прав доступа в других сервисах.
 
-## 🤝 Вклад в проект
+## Вклад в проект
 
 1. Fork проекта
 2. Создайте feature branch (`git checkout -b feature/AmazingFeature`)
@@ -427,18 +436,15 @@ Refresh токен содержит:
 4. Push в branch (`git push origin feature/AmazingFeature`)
 5. Откройте Pull Request
 
-## 📄 Лицензия
+## Лицензия
 
 Этот проект создан для внутреннего использования УТЗ.
 
-## 👥 Авторы
+## Авторы
 
 - **lrshlyogin** - *Initial work*
 
-## 📞 Поддержка
+## Поддержка
 
 При возникновении проблем создайте Issue в репозитории проекта.
 
----
-
-**Примечание:** Убедитесь, что все переменные окружения настроены правильно перед запуском в production!

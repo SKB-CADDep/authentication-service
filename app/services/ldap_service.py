@@ -1,11 +1,13 @@
-from ldap3 import Server, Connection, SUBTREE, ALL
-from ldap3.core.exceptions import (
-    LDAPBindError, 
-    LDAPInvalidCredentialsResult,
-    LDAPException
-)
-from typing import Optional, Dict, List
+"""
+Модуль для работы с сервером LDAP (Active Directory).
+Обеспечивает проверку учетных данных (BIND) и извлечение профиля пользователя.
+"""
+
 import logging
+from typing import Any
+
+from ldap3 import ALL, SUBTREE, Connection, Server
+from ldap3.core.exceptions import LDAPBindError, LDAPException, LDAPInvalidCredentialsResult
 
 from app.core.config import settings
 
@@ -13,19 +15,34 @@ logger = logging.getLogger(__name__)
 
 
 class LDAPService:
-    def __init__(self):
+    """
+    Сервис для взаимодействия с сервером LDAP (Active Directory).
+    
+    Предоставляет методы для аутентификации пользователей, извлечения их
+    атрибутов и проверки принадлежности к группам.
+    """
+
+    def __init__(self) -> None:
+        """
+        Инициализирует объект сервера LDAP, используя параметры из глобальных настроек.
+        """
         self.server = Server(
             settings.LDAP_SERVER,
             port=settings.LDAP_PORT,
             get_info=ALL
         )
     
-    def authenticate(self, username: str, password: str) -> Optional[Dict]:
+    def authenticate(self, username: str, password: str) -> dict[str, Any] | None:
         """
         Аутентификация пользователя через LDAP и получение его данных.
         
+        Args:
+            username (str): Логин пользователя (sAMAccountName).
+            password (str): Пароль пользователя.
+            
         Returns:
-            Dict с данными пользователя или None если аутентификация не удалась
+            dict[str, Any] | None: Словарь с данными пользователя, 
+                                   или None, если аутентификация не удалась.
         """
         if not password:
             logger.warning(f"Empty password provided for user {username}")
@@ -64,9 +81,18 @@ class LDAPService:
             logger.error(f"❌ Unexpected error during authentication: {e}")
             return None
     
-    def _get_user_data(self, conn: Connection, username: str) -> Optional[Dict]:
+    def _get_user_data(self, conn: Connection, username: str) -> dict[str, Any] | None:
         """
-        Получение данных пользователя из LDAP.
+        Получение атрибутов пользователя из LDAP (Active Directory).
+        
+        Args:
+            conn (Connection): Активное соединение с сервером LDAP.
+            username (str): Логин пользователя (sAMAccountName).
+            
+        Returns:
+            dict[str, Any] | None: Нормализованный словарь с атрибутами пользователя
+                                   (имя, почта, телефон, группы и т.д.) или None, 
+                                   если пользователь не найден или произошла ошибка.
         """
         search_filter = f'(sAMAccountName={username})'
         attributes = [
@@ -95,7 +121,7 @@ class LDAPService:
             user_entry = conn.entries[0]
             
             # Обрабатываем группы
-            groups = []
+            groups: list[str] = []
             if hasattr(user_entry, 'memberOf'):
                 groups = [str(group) for group in user_entry.memberOf]
             
@@ -110,16 +136,26 @@ class LDAPService:
                 'groups': groups,
             }
             
-            logger.info(f"Retrieved data for user {username}: {user_data['full_name']}")
+            logger.info(f"Retrieved data for user {username}: {user_data.get('full_name')}")
             return user_data
             
         except Exception as e:
             logger.error(f"Error getting user data: {e}")
             return None
     
-    def check_group_membership(self, groups: List[str], required_group: str) -> bool:
+    def check_group_membership(self, groups: list[str], required_group: str) -> bool:
         """
-        Проверка принадлежности к группе.
+        Проверка принадлежности пользователя к целевой группе.
+        
+        Поиск нечувствителен к регистру и работает по принципу вхождения подстроки 
+        (например, поиск 'admin' даст True для группы 'Domain Admins').
+        
+        Args:
+            groups (list[str]): Список групп пользователя (LDAP DNs).
+            required_group (str): Имя группы для поиска.
+            
+        Returns:
+            bool: True, если совпадение найдено, иначе False.
         """
         for group in groups:
             if required_group.lower() in group.lower():
@@ -127,5 +163,6 @@ class LDAPService:
         return False
 
 
+# Глобальный экземпляр сервиса для импорта в другие модули
 ldap_service = LDAPService()
 
