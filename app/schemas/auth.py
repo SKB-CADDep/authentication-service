@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
 
 
 class Token(BaseModel):
@@ -9,7 +8,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -23,10 +22,12 @@ class TokenValidationRequest(BaseModel):
 
 class TokenValidationResponse(BaseModel):
     valid: bool
-    username: Optional[str] = None
-    message: Optional[str] = None
+    username: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+    groups: list[str] = Field(default_factory=list)
+    message: str | None = None
 
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
-

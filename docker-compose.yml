@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL для Auth Service
   auth_db:
@@ -7,15 +5,13 @@ services:
     container_name: utz_auth_db
     environment:
       POSTGRES_USER: ${AUTH_DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
       POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - auth_db_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
     networks:
-      - utz_network
+      - auth_internal
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-postgres}" ]
       interval: 10s
@@ -27,15 +23,13 @@ services:
   redis:
     image: redis:7-alpine
     container_name: utz_redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     networks:
-      - utz_network
+      - auth_internal
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping" ]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,27 +43,30 @@ services:
     container_name: utz_auth_service
     environment:
       # Database
-      DATABASE_URL: postgresql+asyncpg://${AUTH_DB_USER:-postgres}:${AUTH_DB_PASSWORD:-postgres}@auth_db:5432/${AUTH_DB_NAME:-auth_db}
+      DATABASE_URL: postgresql+asyncpg://${AUTH_DB_USER:-postgres}:${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}@auth_db:5432/${AUTH_DB_NAME:-auth_db}
       
       # LDAP
       LDAP_SERVER: ${LDAP_SERVER:-ldap://dc03.utz.local}
       LDAP_PORT: ${LDAP_PORT:-389}
+      LDAP_TIMEOUT_SECONDS: ${LDAP_TIMEOUT_SECONDS:-5}
       LDAP_BASE_DN: ${LDAP_BASE_DN:-DC=utz,DC=local}
       LDAP_USER_SUFFIX: ${LDAP_USER_SUFFIX:-@utz.local}
       
       # JWT
-      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ALGORITHM: ${ALGORITHM:-HS256}
+      JWT_ISSUER: ${JWT_ISSUER:-utz-auth-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-utz-services}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       
       # Redis
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}@redis:6379/0
       
       # App
       APP_NAME: "UTZ Auth Service"
       DEBUG: ${DEBUG:-false}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
     depends_on:
       auth_db:
         condition: service_healthy
@@ -78,15 +75,18 @@ services:
     ports:
       - "8001:8000"
     networks:
-      - utz_network
-    volumes:
-      - .:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      auth_internal:
+      shared_services:
+        aliases:
+          - authentication-service
     restart: unless-stopped
 
 networks:
-  utz_network:
+  auth_internal:
     driver: bridge
+  shared_services:
+    external: true
+    name: ${SHARED_NETWORK_NAME:-utz_shared_services}
 
 volumes:
   auth_db_data:

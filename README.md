@@ -99,14 +99,17 @@ DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/auth_db
 # LDAP
 LDAP_SERVER=ldap://dc03.utz.local
 LDAP_PORT=389
+LDAP_TIMEOUT_SECONDS=5
 LDAP_BASE_DN=DC=utz,DC=local
 LDAP_USER_SUFFIX=@utz.local
 LDAP_BIND_USER=
 LDAP_BIND_PASSWORD=
 
 # JWT
-SECRET_KEY=your-super-secret-key-change-in-production
+SECRET_KEY=replace-with-a-random-secret-of-at-least-32-characters
 ALGORITHM=HS256
+JWT_ISSUER=utz-auth-service
+JWT_AUDIENCE=utz-services
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
@@ -114,14 +117,17 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 REDIS_URL=redis://localhost:6379/0
 
 # CORS
-ALLOWED_ORIGINS=*
+ALLOWED_ORIGINS=http://localhost:3000
 
 # App
 APP_NAME=UTZ Auth Service
 DEBUG=False
 ```
 
-**⚠️ Важно:** Измените `SECRET_KEY` на случайную строку для production!
+**⚠️ Важно:** Задайте уникальные `SECRET_KEY`, `AUTH_DB_PASSWORD` и
+`REDIS_PASSWORD`. Compose намеренно не запускается без этих значений.
+`SECRET_KEY` должен содержать не менее 32 символов; например, его можно создать
+командой `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 
 ## 🗄️ Настройка базы данных
 
@@ -192,6 +198,9 @@ poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ### Запуск через Docker Compose
 
 ```bash
+# Один раз на Docker-хосте. Эту сеть используют приложения-потребители Auth API.
+docker network create utz_shared_services
+
 # Запуск всех сервисов (PostgreSQL, Redis, Auth Service)
 docker-compose up -d
 
@@ -212,12 +221,8 @@ docker-compose down
 ### Authentication API
 
 - `POST /auth/login` - Аутентификация через LDAP и получение JWT токенов
-  ```json
-  {
-    "username": "lrshlyogin",
-    "password": "password"
-  }
-  ```
+  - Content-Type: `application/x-www-form-urlencoded`
+  - Поля: `username`, `password`
   Ответ:
   ```json
   {
@@ -234,10 +239,23 @@ docker-compose down
   }
   ```
 
+  Принимаются только access-токены активных пользователей. Невалидный,
+  просроченный или refresh-токен возвращается как `{"valid": false}`.
+
 - `GET /auth/me` - Получение информации о текущем пользователе
   - Требуется: `Authorization: Bearer <access_token>`
 
 - `POST /auth/refresh` - Обновление access токена с помощью refresh токена
+  ```json
+  {
+    "refresh_token": "refresh_token_here"
+  }
+  ```
+
+  Refresh-токен одноразовый: успешный запрос возвращает новую пару токенов, а
+  повторное использование старого токена завершается с `401`.
+
+- `POST /auth/logout` - Отзыв refresh-токена
   ```json
   {
     "refresh_token": "refresh_token_here"
@@ -405,11 +423,16 @@ Access токен содержит:
 - `email` - email пользователя
 - `exp` - время истечения
 - `type` - тип токена ("access")
+- `iss` - издатель (`JWT_ISSUER`)
+- `aud` - целевая группа сервисов (`JWT_AUDIENCE`)
+- `iat` - время выпуска
+- `jti` - уникальный идентификатор
 
 Refresh токен содержит:
 - `sub` - username пользователя
 - `exp` - время истечения
 - `type` - тип токена ("refresh")
+- `iss`, `aud`, `iat`, `jti` - служебные claims для проверки и ротации
 
 ### Хранение пользователей
 

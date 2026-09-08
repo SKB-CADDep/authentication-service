@@ -1,64 +1,50 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict
+from typing import Any
+from uuid import uuid4
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
 
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def _base_claims(data: dict[str, Any], expires_at: datetime, token_type: str) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    return {
+        **data,
+        "iat": now,
+        "exp": expires_at,
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+        "jti": uuid4().hex,
+        "type": token_type,
+    }
+
+
+def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     """
     Создание Access Token (короткоживущий).
     """
-    to_encode = data.copy()
-    
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-    
-    to_encode.update({
-        "exp": expire,
-        "type": "access"
-    })
-    
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+    expires_at = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    
-    return encoded_jwt
+    claims = _base_claims(data, expires_at, "access")
+    return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict[str, Any]) -> str:
     """
     Создание Refresh Token (долгоживущий).
     """
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-    )
-    
-    to_encode.update({
-        "exp": expire,
-        "type": "refresh"
-    })
-    
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
-    )
-    
-    return encoded_jwt
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    claims = _base_claims(data, expires_at, "refresh")
+    return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_token(token: str) -> Optional[Dict]:
+def decode_token(token: str) -> dict[str, Any] | None:
     """
     Декодирование и валидация токена.
     """
@@ -66,7 +52,9 @@ def decode_token(token: str) -> Optional[Dict]:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            algorithms=[settings.ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
         )
         return payload
     except JWTError:
@@ -85,4 +73,3 @@ def get_password_hash(password: str) -> str:
     Хеширование пароля.
     """
     return pwd_context.hash(password)
-

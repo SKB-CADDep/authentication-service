@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 .venv/
+.poetry-cache/
 ENV/
 build/
 develop-eggs/
@@ -55,6 +56,7 @@ logs/
 
 # Tests
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 

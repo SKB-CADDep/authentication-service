@@ -1,28 +1,27 @@
+import logging
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-import logging
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.database.session import Base, engine
 from app.routers import auth, frontend
-from app.database.session import engine, Base
-from app.models.user import User
+from app.services.refresh_token_store import refresh_token_store
+
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 # Определяем базовую директорию проекта
 BASE_DIR = Path(__file__).parent.parent
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    debug=settings.DEBUG
-)
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
 # Подключаем статические файлы
 static_dir = BASE_DIR / "static"
@@ -33,10 +32,16 @@ if static_dir.exists():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await refresh_token_store.close()
+
 
 # Подключаем роутеры
 app.include_router(auth.router)
@@ -67,7 +72,6 @@ async def startup_event():
         logger.error("   1. PostgreSQL is running")
         logger.error("   2. DATABASE_URL is correctly configured in .env file")
         logger.error("   3. Database exists and migrations are applied")
-        logger.error(f"   Current DATABASE_URL: {settings.DATABASE_URL}")
 
 
 @app.get("/health")
@@ -78,13 +82,10 @@ async def health_check():
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected"
-        }
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e)
-        }
+        logging.getLogger(__name__).error("Database health check failed: %s", e)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "database": "disconnected"},
+        )
